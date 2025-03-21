@@ -1,0 +1,59 @@
+server:
+  service-name: 'shortlink'
+  area-id: 1
+  node-id: 1
+  host: '127.0.0.1'
+  port: 8081
+
+etcd:
+  endpoints:
+    - '127.0.0.1:2379'
+  dail-timeout: '3s'
+  dail-keep-alive-timeout: '3s'
+  ttl: 30
+
+kafka:
+  brokers:
+    - '127.0.0.1:9092'
+  add-topic: 'short-link-add'
+  delete-topic: 'short-link-delete'
+  add-group-id: 'short-link-add-group'
+  delete-group-id: 'short-link-delete-group'
+
+data:
+  redis:
+    master:
+      host: '127.0.0.1'
+      port: 7001
+      username: 'default'
+      password: 'admin'
+      index: 0
+    replicas:
+      - host: '127.0.0.1'
+        port: 7002
+        username: 'default'
+        password: 'admin'
+        index: 0
+      - host: '127.0.0.1'
+        port: 7003
+        username: 'default'
+        password: 'admin'
+        index: 0
+  database:
+    master:
+      host: '127.0.0.1'
+      port: 8001
+      username: 'postgres'
+      password: 'admin'
+      db-name: 'shortlink'
+    replicas:
+      - host: '127.0.0.1'
+        port: 8002
+        username: 'postgres'
+        password: 'admin'
+        db-name: 'shortlink'
+      - host: '127.0.0.1'
+        port: 8003
+        username: 'postgres'
+        password: 'admin'
+        db-name: 'shortlink'

@@ -1,0 +1,96 @@
+services:
+  # redis主库
+  redis-master:
+    image: redis/redis-stack-server
+    container_name: redis-master
+    restart: no
+    networks:
+      - redis-net
+    ports:
+      - "7001:6379"
+    volumes:
+      - ./redis-master/data:/data
+      - ./redis-master/config/redis.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+  # redis从库1
+  redis-replica1:
+    image: redis/redis-stack-server
+    container_name: redis-replica1
+    restart: no
+    networks:
+      - redis-net
+    ports:
+      - "7002:6379"
+    volumes:
+      - ./redis-replica1/data:/data
+      - ./redis-replica1/config/redis.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+  # redis从库2
+  redis-replica2:
+    image: redis/redis-stack-server
+    container_name: redis-replica2
+    restart: no
+    networks:
+      - redis-net
+    ports:
+      - "7003:6379"
+    volumes:
+      - ./redis-replica2/data:/data
+      - ./redis-replica2/config/redis.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+  # postgresql主库
+  postgres-master:
+    image: postgres
+    restart: no
+    container_name: postgres-master
+    environment:
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres-master/data:/var/lib/postgresql/data
+    ports:
+      - 8001:5432
+    networks:
+      - postgres-net
+  # postgresql从库1
+  postgresql-replica1:
+    image: postgres
+    restart: no
+    container_name: postgres-replica1
+    environment:
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres-replica1/data:/var/lib/postgresql/data
+    ports:
+      - 8002:5432
+    networks:
+      - postgres-net
+  # postgresql从库2
+  postgresql-replica2:
+    image: postgres
+    restart: no
+    container_name: postgres-replica2
+    environment:
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - ./postgres-replica2/data:/var/lib/postgresql/data
+    ports:
+      - 8003:5432
+    networks:
+      - postgres-net
+  # kafka
+  kafka:
+    image: apache/kafka-native:latest
+    container_name: kafka
+    restart: no
+    ports:
+      - 9092:9092
+    volumes:
+      - ./kafka/data:/var/lib/kafka/data
+
+networks:
+  redis-net:
+    external: true
+    name: redis-net
+  postgres-net:
+    external: true
+    name: postgres-net

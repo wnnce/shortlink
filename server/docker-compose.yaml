@@ -1,0 +1,9 @@
+services:
+  shortlink-api:
+    image: shortlink-api:latest
+    container_name: shortlink-api
+    restart: no
+    volumes:
+      - ./config/config-dev.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host

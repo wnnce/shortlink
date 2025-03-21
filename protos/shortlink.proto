@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package shortlink;
+
+option go_package = "/server/pb";
+
+import "google/protobuf/empty.proto";
+
+message QueryRequest {
+  string baseKey = 1;
+}
+
+message QueryResponse {
+  string originUrl = 1;
+}
+
+message CreateRequest {
+  string originUrl = 1; // 原始url
+  string clientIp = 2; // 客户端ip
+  string userAgent = 3; // 客户端userAgent
+  bool isLasting = 4; // 是否长期有效
+  int32 validHour = 5; // 链接的有效时间 单位：小时
+  int32 expireMode = 6; // 链接的过期删除模式，1:精确模式 2:模糊模式
+}
+
+message CreateResponse {
+  string baseKey = 1;
+}
+
+message DeleteRequest {
+  string baseKey = 1;
+}
+
+message LinkRecord {
+  int64 Id = 1; // 数据库自增id
+  string UniqueId = 2; // 唯一Id，由服务端生成
+  string BaseValue = 3; // 唯一Id的base62值
+  string OriginUrl = 4; // 对应的原链接Url
+  int32 ValidHour = 5; // 链接的有效时间，长期链接为空
+  bool IsLasting = 6; // 是否为长期有效的链接
+  string CreateTime = 7; // 创建时间
+  int64 ExpireTime = 8; // 过期时间
+  int32 ExpireMode = 9; // 连接的过期删除策略 0:模糊 1:精确
+  string ClientIp = 10; // 客户端Ip
+  string UserAgent = 11; // 客户端的UserAgent
+  int32 Status = 12; // 此链接的状态 0:正常 1:禁用
+}
+
+service LinkService {
+  // 查询短链的原始地址
+  rpc QueryOriginUrl(QueryRequest) returns (QueryResponse);
+  // 创建短链
+  rpc CreateShortLink(CreateRequest) returns (CreateResponse);
+  // 删除短链
+  rpc DeleteShortLink(DeleteRequest) returns (google.protobuf.Empty);
+  // 查询短链详情
+  rpc QueryShortLinkInfo(QueryRequest) returns (LinkRecord);
+}

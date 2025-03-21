@@ -1,0 +1,41 @@
+services:
+  shortlink-1:
+    image: shortlink:latest
+    container_name: shortlink-node1
+    restart: no
+    volumes:
+      - ./config/config-dev.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host
+  shortlink-2:
+    image: shortlink:latest
+    container_name: shortlink-node2
+    restart: no
+    volumes:
+      - ./config/config-dev2.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host
+  shortlink-3:
+    image: shortlink:latest
+    container_name: shortlink-node3
+    restart: no
+    volumes:
+      - ./config/config-dev3.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host
+  shortlink-4:
+    image: shortlink:latest
+    container_name: shortlink-node4
+    restart: no
+    volumes:
+      - ./config/config-dev4.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host
+  shortlink-5:
+    image: shortlink:latest
+    container_name: shortlink-node5
+    restart: no
+    volumes:
+      - ./config/config-dev5.yaml:/app/config/config.yaml
+    # 使用主机网络
+    network_mode: host

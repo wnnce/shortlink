@@ -1,0 +1,9 @@
+server:
+  host: 'localhost'
+  port: 9001
+  service-name: 'shortlink'
+
+etcd:
+  endpoints:
+    - '127.0.0.1:2379'
+  dial-timeout: '3s'
