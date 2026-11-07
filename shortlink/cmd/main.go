@@ -61,7 +61,7 @@ func main() {
 	go shortlink.StartDeleteConsumer(ctx, linkService)
 
 	// 启动短链删除任务
-	go linkTask.StartRedisRecordDelete(ctx, 15*time.Minute)
+	go linkTask.StartRedisRecordDelete(ctx, 5*time.Minute)
 	go linkTask.StartDbRecordDelete(ctx, 6*time.Hour)
 
 	defer func() {
