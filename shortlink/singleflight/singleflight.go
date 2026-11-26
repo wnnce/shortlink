@@ -6,9 +6,11 @@ import (
 )
 
 type call struct {
-	wg    sync.WaitGroup
-	value any
-	err   error
+	wg         sync.WaitGroup
+	value      any
+	err        error
+	panicked   bool
+	panicValue any
 }
 
 type Group struct {
@@ -27,16 +29,34 @@ func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
 		log.Println("peer is called key ", key)
 		self.mu.Unlock()
 		cl.wg.Wait()
+		if cl.panicked {
+			panic(cl.panicValue)
+		}
 		return cl.value, cl.err
 	}
 	newCall := &call{}
 	newCall.wg.Add(1)
 	self.callMap[key] = newCall
 	self.mu.Unlock()
+
+	completed := false
+	defer func() {
+		if !completed {
+			newCall.panicked = true
+			newCall.panicValue = recover()
+		}
+
+		self.mu.Lock()
+		delete(self.callMap, key)
+		self.mu.Unlock()
+		newCall.wg.Done()
+
+		if newCall.panicked {
+			panic(newCall.panicValue)
+		}
+	}()
+
 	newCall.value, newCall.err = fn()
-	newCall.wg.Done()
-	self.mu.Lock()
-	delete(self.callMap, key)
-	self.mu.Unlock()
+	completed = true
 	return newCall.value, newCall.err
 }
