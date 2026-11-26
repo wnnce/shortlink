@@ -1,6 +1,7 @@
 package singleflight
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
@@ -17,7 +18,7 @@ type Group struct {
 }
 
 // Do 拦截多次key的相同请求
-func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
+func (self *Group) Do(key string, fn func() (any, error)) (value any, err error) {
 	self.mu.Lock()
 	if self.callMap == nil {
 		self.callMap = make(map[string]*call)
@@ -33,10 +34,21 @@ func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
 	newCall.wg.Add(1)
 	self.callMap[key] = newCall
 	self.mu.Unlock()
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			newCall.value = nil
+			newCall.err = fmt.Errorf("singleflight function panicked: %v", recovered)
+			value = nil
+			err = newCall.err
+		}
+
+		self.mu.Lock()
+		delete(self.callMap, key)
+		self.mu.Unlock()
+		newCall.wg.Done()
+	}()
+
 	newCall.value, newCall.err = fn()
-	newCall.wg.Done()
-	self.mu.Lock()
-	delete(self.callMap, key)
-	self.mu.Unlock()
 	return newCall.value, newCall.err
 }
