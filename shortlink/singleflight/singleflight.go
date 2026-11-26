@@ -1,16 +1,15 @@
 package singleflight
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
 
 type call struct {
-	wg         sync.WaitGroup
-	value      any
-	err        error
-	panicked   bool
-	panicValue any
+	wg    sync.WaitGroup
+	value any
+	err   error
 }
 
 type Group struct {
@@ -19,7 +18,7 @@ type Group struct {
 }
 
 // Do 拦截多次key的相同请求
-func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
+func (self *Group) Do(key string, fn func() (any, error)) (value any, err error) {
 	self.mu.Lock()
 	if self.callMap == nil {
 		self.callMap = make(map[string]*call)
@@ -29,9 +28,6 @@ func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
 		log.Println("peer is called key ", key)
 		self.mu.Unlock()
 		cl.wg.Wait()
-		if cl.panicked {
-			panic(cl.panicValue)
-		}
 		return cl.value, cl.err
 	}
 	newCall := &call{}
@@ -39,24 +35,20 @@ func (self *Group) Do(key string, fn func() (any, error)) (any, error) {
 	self.callMap[key] = newCall
 	self.mu.Unlock()
 
-	completed := false
 	defer func() {
-		if !completed {
-			newCall.panicked = true
-			newCall.panicValue = recover()
+		if recovered := recover(); recovered != nil {
+			newCall.value = nil
+			newCall.err = fmt.Errorf("singleflight function panicked: %v", recovered)
+			value = nil
+			err = newCall.err
 		}
 
 		self.mu.Lock()
 		delete(self.callMap, key)
 		self.mu.Unlock()
 		newCall.wg.Done()
-
-		if newCall.panicked {
-			panic(newCall.panicValue)
-		}
 	}()
 
 	newCall.value, newCall.err = fn()
-	completed = true
 	return newCall.value, newCall.err
 }

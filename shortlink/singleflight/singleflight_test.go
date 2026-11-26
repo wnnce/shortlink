@@ -1,27 +1,15 @@
 package singleflight
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-type panicResult struct {
-	panicked bool
-	value    any
-}
-
-func callAndRecover(fn func()) (result panicResult) {
-	completed := false
-	defer func() {
-		if !completed {
-			result.panicked = true
-			result.value = recover()
-		}
-	}()
-	fn()
-	completed = true
-	return result
+type doResult struct {
+	value any
+	err   error
 }
 
 func TestGroupDo_UnblocksWaitersWhenFunctionPanics(t *testing.T) {
@@ -33,16 +21,15 @@ func TestGroupDo_UnblocksWaitersWhenFunctionPanics(t *testing.T) {
 	group := &Group{}
 	started := make(chan struct{})
 	release := make(chan struct{})
-	results := make(chan panicResult, waiterCount+1)
+	results := make(chan doResult, waiterCount+1)
 
 	go func() {
-		results <- callAndRecover(func() {
-			group.Do(key, func() (any, error) {
-				close(started)
-				<-release
-				panic("boom")
-			})
+		value, err := group.Do(key, func() (any, error) {
+			close(started)
+			<-release
+			panic("boom")
 		})
+		results <- doResult{value: value, err: err}
 	}()
 
 	select {
@@ -56,12 +43,11 @@ func TestGroupDo_UnblocksWaitersWhenFunctionPanics(t *testing.T) {
 	for i := 0; i < waiterCount; i++ {
 		go func() {
 			waitersReady.Done()
-			results <- callAndRecover(func() {
-				group.Do(key, func() (any, error) {
-					t.Error("waiter function was unexpectedly called")
-					return nil, nil
-				})
+			value, err := group.Do(key, func() (any, error) {
+				t.Error("waiter function was unexpectedly called")
+				return nil, nil
 			})
+			results <- doResult{value: value, err: err}
 		}()
 	}
 	waitersReady.Wait()
@@ -74,8 +60,8 @@ func TestGroupDo_UnblocksWaitersWhenFunctionPanics(t *testing.T) {
 	for i := 0; i < waiterCount+1; i++ {
 		select {
 		case result := <-results:
-			if !result.panicked || result.value != "boom" {
-				t.Fatalf("Do panic = %#v, want boom", result)
+			if result.value != nil || result.err == nil || !strings.Contains(result.err.Error(), "boom") {
+				t.Fatalf("Do result = (%#v, %v), want (nil, panic error containing boom)", result.value, result.err)
 			}
 		case <-time.After(time.Second):
 			t.Fatal("Do did not return after the function panicked")
@@ -86,19 +72,13 @@ func TestGroupDo_UnblocksWaitersWhenFunctionPanics(t *testing.T) {
 func TestGroupDo_AllowsCallsAfterFunctionPanic(t *testing.T) {
 	group := &Group{}
 
-	result := callAndRecover(func() {
-		group.Do("panic", func() (any, error) {
-			panic("boom")
-		})
+	value, err := group.Do("panic", func() (any, error) {
+		panic("boom")
 	})
-	if !result.panicked || result.value != "boom" {
-		t.Fatalf("Do panic = %#v, want boom", result)
+	if value != nil || err == nil || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("Do result = (%#v, %v), want (nil, panic error containing boom)", value, err)
 	}
 
-	type doResult struct {
-		value any
-		err   error
-	}
 	completed := make(chan doResult, 1)
 	go func() {
 		value, err := group.Do("panic", func() (any, error) {
